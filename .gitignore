@@ -1,0 +1,4 @@
+.venv
+data/*.npy
+data/ResNet50_bn1024_OneCycle_CE-ls2e-1___weights.h5
+data/resnet-herbarium-model.h5
