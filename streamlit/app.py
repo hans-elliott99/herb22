@@ -203,7 +203,7 @@ else:
     st.write(pred_classes)
     st.write("""
             The confidence scores are the model's predicted probabilities for each class.
-            Shown above are the top model's 5 guesses for your image, sorted by highest condifence.  
+            Shown above are the model's top 5 guesses for your image, sorted by condifence.  
             The scores are generally fairly low, but this is partially due to the large number of possible classes.  
             """)
 
