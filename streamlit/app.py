@@ -6,6 +6,7 @@ import tensorflow as tf
 from PIL import Image, ImageOps
 import os
 import streamlit as st
+from filesplit.merge import Merge
 
 # Settings
 st.set_page_config(page_title="Herbarium Classification", page_icon=None, 
@@ -21,7 +22,7 @@ def prep_input_image(image, resize_factor=(380, 380)):
     #image -= tf.constant([0.485, 0.456, 0.406], shape=[1, 1, 3], dtype=image.dtype)
     #image /= tf.constant([0.229, 0.224, 0.225], shape=[1, 1, 3], dtype=image.dtype)
     # Crop towards center of image (crop out borders)
-    image = tf.image.central_crop(image, central_fraction = 0.9)
+    #image = tf.image.central_crop(image, central_fraction = 0.9)
     # Resize
     image = np.array(image)
     image = cv2.resize(image, resize_factor, interpolation=cv2.INTER_LINEAR)
@@ -38,12 +39,12 @@ def top_5_predictions(pred):
     map_name_to_cat_id = dict(zip(meta_data.scientific_name, meta_data.category))
     map_label_to_name = dict(zip(range(15501), sorted(set(meta_data.scientific_name))))
     # Top 5 class prediction
-    num_class = pred.shape[1] #15501 for full
+    num_class = 15501
     pred = pred.reshape(num_class)
     pred_idx = np.argpartition(pred, -5)[-5: ]
 
     # Map to get true category labels
-    pred_class = np.array([map_name_to_cat_id[map_label_to_name[pred]] for pred in pred_idx])
+    pred_class = np.array([map_name_to_cat_id[map_label_to_name[p]] for p in pred_idx])
     # Probabilities for top 5 preds
     pred_prob = pred.reshape(num_class)[pred_idx]
 
@@ -84,6 +85,9 @@ def query_plant_info(categories, X=None,y=None):
 def upload_predict(image, model):
         size = (380,380)    
         image = np.asarray(image)
+        if len(image.shape) > 2 and image.shape[2] == 4:
+            #convert the image from RGBA2RGB (for example, if input is PNG)
+            image = cv2.cvtColor(image, cv2.COLOR_BGRA2BGR)
         image = prep_input_image(image)
         prediction = model.predict(image)
         top5, pred_classes = top_5_predictions(prediction)
@@ -99,17 +103,35 @@ def upload_predict(image, model):
         })
 
         return out
-#-----
+
 @st.cache(allow_output_mutation=True)
 def load_model():
-  model = tf.keras.models.load_model('./data/resnet-herbarium-model.h5')
-  return model
+    # Load model structure
+    ## Load in JSON model config
+    json_file = open('./data/herb-model.json', 'r')
+    loaded_json_mod = json_file.read()
+    json_file.close()
+    ## Feed in JSON config to keras model
+    model = tf.keras.models.model_from_json(loaded_json_mod)
 
-with st.spinner('Loading model..'):
+    # Load model weights
+    ## Concatenate split weights into one file (creates full_weights.h5)
+    merge = Merge('./data/', './data/', 'full_weights.h5')
+    merge.merge(cleanup=False)   ##keep split filesin data/ dir with False
+    ## Load saved weights into model
+    model.load_weights('./data/full_weights.h5')
+
+    return model
+
+#-----#
+# APP #--------------------------------------------------------
+#-----#
+
+with st.spinner('Loading trained model...'):
     model = load_model()
     # Load metadata
     meta_data = pd.read_csv('./data/herb22meta_data.csv')
-    # Load Image Arrays and Corresponding Labels
+    # Load Image Arrays and Corresponding Labels for Examples
     #pp = "C:/Users/hanse/Documents/herbarium22/data/"
     #with open(pp+'image-arrays.npy', 'rb') as f:
     #    X = np.load(f)
