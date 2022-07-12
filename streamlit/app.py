@@ -162,7 +162,7 @@ st.write("""
 
 # FILE UPLOADER
 file = st.file_uploader("Upload an image of a North American vascular land plant.", 
-                        help="Accepts the following file formats: jpg/jpeg, png, heic (iPhone).") #type=["jpg", "png", "heic, "])
+                        help="Supported filetypes: jpg/jpeg, png, heic (iPhone).") #type=["jpg", "png", "heic, "])
 st.set_option('deprecation.showfileUploaderEncoding', False)
 
 
