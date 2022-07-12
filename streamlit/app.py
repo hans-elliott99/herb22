@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,6 +7,7 @@ from PIL import Image, ImageOps
 import os
 import streamlit as st
 from filesplit.merge import Merge
+import pillow_heif
 
 # Settings
 st.set_page_config(page_title="Herbarium Classification", page_icon=None, 
@@ -156,17 +155,17 @@ st.write("""
          (For accurate classifications, check out apps like PictureThis.)  
 
          The deep learning model used for this project is a ResNet50 model pre-trained on ImageNet and then trained for 10
-         epochs on the Herbarium 2022 dataset. It achieved an F1-score of 0.73 on the test data available on Kaggle.  
+         epochs on the Herbarium 2022 dataset. It achieved an F1-score of 0.73 on the Herbarium test data available on Kaggle.  
          """
          )
 
 
-# FILE INPUT
-file = st.file_uploader("Upload an image of a North American vascular land plant.", type=["jpg", "png"])
+# FILE UPLOADER
+file = st.file_uploader("Upload an image of a North American vascular land plant.", type=["jpg", "png", "heic"])
 st.set_option('deprecation.showfileUploaderEncoding', False)
 
 
-# EXAMPLES
+# EXAMPLE IMAGES
 st.write("""
         ### Example Images  
         [Source.](https://www.kaggle.com/competitions/herbarium-2022-fgvc9) 
@@ -179,12 +178,24 @@ st.image(ex_imgs, caption=['Aeschynomene viscidula Michx.',
                             'Amsonia peeblesii Woodson'],
                             use_column_width=False, width=400)
 
-# UPLOAD PREDICT
+# PROCESS IMAGE AND PREDICT
 if file is None:
     st.text("Upload image for prediction.")
 else:
-    img = Image.open(file)
-    st.write("Your Image:")
+    bytes_data = file.read()
+    filename = file.name
+    # If file is in HEIC format (ie, if uploaded from iphone)
+    if filename.split('.')[-1] in ['heic', 'HEIC', 'heif', 'HEIF']:
+        heic_file = pillow_heif.read_heif(file)
+        img = Image.frombytes(
+            heic_file.mode,
+            heic_file.size,
+            heic_file.data
+        )
+    else:
+        img = Image.open(file)
+    st.write("### Your Image:")
+    st.write("filename:", filename)
     st.image(img, width=400, use_column_width=False)
     pred_classes = upload_predict(img, model)
     st.write("# Prediction")
@@ -192,10 +203,10 @@ else:
     st.write("""
             The confidence scores are the model's predicted probabilities for each class.
             Shown above are the top model's 5 guesses for your image, sorted by highest condifence.  
-            The confidence scores are generally fairly low, but this is partially due to the large number of possible classes.  
+            The scores are generally fairly low, but this is partially due to the large number of possible classes.  
             """)
 
 
-
+st.write("---")
 st.write("By [Hans Elliott](https://hans-elliott99.github.io/)")
 
