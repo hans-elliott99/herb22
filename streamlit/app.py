@@ -161,7 +161,7 @@ st.write("""
 
 
 # FILE UPLOADER
-file = st.file_uploader("Upload an image of a North American vascular land plant.", type=["jpg", "png", "heic"])
+file = st.file_uploader("Upload an image of a North American vascular land plant.") #type=["jpg", "png", "heic, "])
 st.set_option('deprecation.showfileUploaderEncoding', False)
 
 
